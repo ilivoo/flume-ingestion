@@ -1,5 +1,6 @@
 package com.ilivoo.flume.utils;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
@@ -8,6 +9,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class JsonUtil {
+
+    public static final Gson gson = new Gson();
 
     private static final JsonParser parser = new JsonParser();
 

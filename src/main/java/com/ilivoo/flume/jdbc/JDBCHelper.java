@@ -9,6 +9,8 @@ import org.jooq.ConnectionRunnable;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 import org.jooq.tools.jdbc.JDBCUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -22,6 +24,7 @@ import java.util.Map;
 import java.util.Properties;
 
 public class JDBCHelper {
+    private static final Logger log = LoggerFactory.getLogger(JDBCHelper.class);
     //common
     public static final String SEPARATOR = ".";
     public static final String TABLES = "tables";
@@ -68,6 +71,7 @@ public class JDBCHelper {
                     .loadClass(providerClass).newInstance();
             provider.configProps(connProps);
             create = DSL.using(provider.createDataSource(), JDBCUtils.dialect(provider.getUrl()));
+            log.info("Server Type: " + create.dialect().name());
         } catch (Exception e) {
             throw new JDBCException("DSL context create error", e);
         }
@@ -161,7 +165,7 @@ public class JDBCHelper {
                 if (!Strings.isNullOrEmpty(incrementStr)) {
                     increments = incrementStr.split("\\s+");
                 }
-                Preconditions.checkArgument(increments.length >= 1 && increments.length <= 2);
+                Preconditions.checkArgument(increments.length >= 1 && increments.length <= 2, jst.getName() + " increments config error");
                 jst.setIncrements(increments);
                 Context incrementContext = new Context(tableContext.getSubProperties(TABLE_INCREMENT_PREFIX));
                 //column convert

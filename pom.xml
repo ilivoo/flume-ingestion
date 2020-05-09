@@ -88,16 +88,16 @@
             <artifactId>HikariCP</artifactId>
             <version>${HikariCP.version}</version>
         </dependency>
-        <!--<dependency>-->
-            <!--<groupId>org.jooq.trial</groupId>-->
-            <!--<artifactId>jooq</artifactId>-->
-            <!--<version>${jooq.version}</version>-->
-        <!--</dependency>-->
         <dependency>
-            <groupId>org.jooq</groupId>
+            <groupId>org.jooq.trial</groupId>
             <artifactId>jooq</artifactId>
             <version>${jooq.version}</version>
         </dependency>
+        <!--<dependency>-->
+            <!--<groupId>org.jooq</groupId>-->
+            <!--<artifactId>jooq</artifactId>-->
+            <!--<version>${jooq.version}</version>-->
+        <!--</dependency>-->
         <dependency>
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>

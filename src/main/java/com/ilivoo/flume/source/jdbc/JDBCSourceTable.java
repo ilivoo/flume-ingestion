@@ -2,19 +2,19 @@ package com.ilivoo.flume.source.jdbc;
 
 import com.google.common.base.Strings;
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.ilivoo.flume.jdbc.DBContext;
 import com.ilivoo.flume.jdbc.JDBCTable;
 import com.ilivoo.flume.sink.jdbc.JDBCSinkException;
 import com.ilivoo.flume.utils.JsonUtil;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.mutable.MutableObject;
 import org.apache.flume.Event;
 import org.apache.flume.event.EventBuilder;
 import org.jooq.Condition;
+import org.jooq.ConnectionRunnable;
 import org.jooq.DataType;
 import org.jooq.Field;
-import org.jooq.JSONFormat;
-import org.jooq.Record;
-import org.jooq.Result;
 import org.jooq.Select;
 import org.jooq.SelectConditionStep;
 import org.jooq.SelectJoinStep;
@@ -26,6 +26,10 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -135,8 +139,21 @@ public class JDBCSourceTable extends JDBCTable {
         }
     }
 
-    List<Event> readEvents(long batchSize) {
-        List<Event> result = new ArrayList<>();
+    private String rsToJson(ResultSet rs, ResultSetMetaData metaData) throws Exception {
+        int columnCount = metaData.getColumnCount();
+        JsonObject jsonObject = new JsonObject();
+        for (int i = 1; i <= columnCount; i++) {
+            String cName = metaData.getColumnLabel(i);
+            String value = rs.getString(i);
+            if (!Strings.isNullOrEmpty(value)) {
+                jsonObject.addProperty(cName, value);
+            }
+        }
+        return JsonUtil.gson.toJson(jsonObject);
+    }
+
+    List<Event> readEvents(final long batchSize) {
+        final List<Event> result = new ArrayList<>();
         long currentTime = System.currentTimeMillis();
         if (increments.length == 1) {
             if (tableIdle != null) {
@@ -150,29 +167,42 @@ public class JDBCSourceTable extends JDBCTable {
                     return result;
                 }
             }
-            Object defaultObj = table.field(increments[0]).getDataType().convert(defaultStart);
+            final Object defaultObj = table.field(increments[0]).getDataType().convert(defaultStart);
             Condition condition = field(increments[0]).gt(defaultObj);
             if (!Strings.isNullOrEmpty(where)) {
                 condition = condition.and(where);
             }
-            Select select = dbContext.dslContext()
+            final Select select = dbContext.dslContext()
                     .select(selectField())
                     .from(table)
                     .where(condition)
                     .orderBy(field(increments[0]))
                     .limit((int) batchSize);
             log.debug(select.getSQL());
-            Record lastRecord = null;
-            for (Object obj : select.fetch()) {
-                Record record = (Record) obj;
-                lastRecord = record;
-                String row = record.formatJSON(new JSONFormat().recordFormat(JSONFormat.RecordFormat.OBJECT));
-                Map<String, String> header = new HashMap<>();
-                header.put("table", getAlias());
-                result.add(EventBuilder.withBody(row, Charset.forName("UTF-8"), header));
-            }
-            if (lastRecord != null) {
-                defaultStart = lastRecord.get(getColumnAlias(increments[0])).toString();
+
+            final String columnAlias = getColumnAlias(increments[0]);
+            final MutableObject mutableObject = new MutableObject();
+            dbContext.dslContext().connection(new ConnectionRunnable() {
+                @Override
+                public void run(Connection connection) throws Exception {
+                    PreparedStatement ps = connection.prepareStatement(select.getSQL());
+                    ps.setObject(1, defaultObj);
+                    if (!dbContext.isSQLServer()) {
+                        ps.setObject(2, batchSize);
+                    }
+                    ResultSet rs = ps.executeQuery();
+                    ResultSetMetaData metaData = rs.getMetaData();
+                    while (rs.next()) {
+                        Map<String, String> header = new HashMap<>();
+                        header.put("table", getAlias());
+                        String row = rsToJson(rs, metaData);
+                        mutableObject.setValue(rs.getObject(columnAlias));
+                        result.add(EventBuilder.withBody(row, Charset.forName("UTF-8"), header));
+                    }
+                }
+            });
+            if (mutableObject.getValue() != null) {
+                defaultStart = mutableObject.getValue().toString();
                 tableIdle = null;
             } else {
                 if (tableIdle == null) {
@@ -197,29 +227,44 @@ public class JDBCSourceTable extends JDBCTable {
                         continue;
                     }
                 }
-                Condition condition = field(increments[0]).eq(identifyType.convert(identify))
-                        .and(field(increments[1]).gt(incrementType.convert(entry.getValue())));
+                final Object identifyValue = identifyType.convert(identify);
+                final Object incrementValue = incrementType.convert(entry.getValue());
+                Condition condition = field(increments[0]).eq(identifyValue)
+                        .and(field(increments[1]).gt(incrementValue));
                 if (!Strings.isNullOrEmpty(where)) {
                     condition = condition.and(where);
                 }
-                Result fetch = dbContext.dslContext()
+                final Select select = dbContext.dslContext()
                         .select(selectField())
                         .from(table)
                         .where(condition)
                         .orderBy(field(increments[1]))
-                        .limit((int) batchSize)
-                        .fetch();
-                Record lastRecord = null;
-                for (Object obj : fetch) {
-                    Record record = (Record) obj;
-                    lastRecord = record;
-                    String row = record.formatJSON(new JSONFormat().recordFormat(JSONFormat.RecordFormat.OBJECT));
-                    Map<String, String> header = new HashMap<>();
-                    header.put("table", getAlias());
-                    result.add(EventBuilder.withBody(row, Charset.forName("UTF-8"), header));
-                }
-                if (lastRecord != null) {
-                    String increment = lastRecord.get(getColumnAlias(increments[1])).toString();
+                        .limit((int) batchSize);
+                log.debug(select.getSQL());
+                final String columnAlias = getColumnAlias(increments[1]);
+                final MutableObject mutableObject = new MutableObject();
+                dbContext.dslContext().connection(new ConnectionRunnable() {
+                    @Override
+                    public void run(Connection connection) throws Exception {
+                        PreparedStatement ps = connection.prepareStatement(select.getSQL());
+                        ps.setObject(1, identifyValue);
+                        ps.setObject(2, incrementValue);
+                        if (!dbContext.isSQLServer()) {
+                            ps.setObject(3, batchSize);
+                        }
+                        ResultSet rs = ps.executeQuery();
+                        ResultSetMetaData metaData = rs.getMetaData();
+                        while (rs.next()) {
+                            Map<String, String> header = new HashMap<>();
+                            header.put("table", getAlias());
+                            String row = rsToJson(rs, metaData);
+                            mutableObject.setValue(rs.getObject(columnAlias));
+                            result.add(EventBuilder.withBody(row, Charset.forName("UTF-8"), header));
+                        }
+                    }
+                });
+                if (mutableObject.getValue() != null) {
+                    String increment = mutableObject.getValue().toString();
                     start.put(identify, increment);
                     idleMap.remove(identify);
                 } else {
@@ -274,7 +319,7 @@ public class JDBCSourceTable extends JDBCTable {
     }
 
     private Map<String, String> readDBPosition() {
-        Map<String, String> result = new HashMap<>();
+        final Map<String, String> result = new HashMap<>();
         if (increments.length != 1) {
             //select identify, min(increment) from table where identify not in excludes group by identify
             SelectJoinStep selectJoinStep = dbContext.dslContext()
@@ -282,28 +327,38 @@ public class JDBCSourceTable extends JDBCTable {
                     .from(table);
             SelectConditionStep selectConditionStep;
             DataType identifyType = table.field(increments[0]).getDataType();
+            final Set<Object> includeOrExcludeObjSet = new HashSet<>();
             if (includes.size() > 0) {
-                Set<Object> includeObjSet = new HashSet<>();
                 for (String include : includes) {
-                    includeObjSet.add(identifyType.convert(include));
+                    includeOrExcludeObjSet.add(identifyType.convert(include));
                 }
-                selectConditionStep = selectJoinStep.where(field(increments[0]).in(includeObjSet));
+                selectConditionStep = selectJoinStep.where(field(increments[0]).in(includeOrExcludeObjSet));
             } else if (excludes.size() == 0) {
                 selectConditionStep = selectJoinStep.where(trueCondition());
             } else {
-                Set<Object> excludeObjSet = new HashSet<>();
                 for (String exclude : excludes) {
-                    excludeObjSet.add(identifyType.convert(exclude));
+                    includeOrExcludeObjSet.add(identifyType.convert(exclude));
                 }
-                selectConditionStep = selectJoinStep.where(field(increments[0]).notIn(excludeObjSet));
+                selectConditionStep = selectJoinStep.where(field(increments[0]).notIn(includeOrExcludeObjSet));
             }
-            Result fetch = selectConditionStep.groupBy(field(increments[0])).fetch();
-            for (Object obj : fetch) {
-                Record record = (Record) obj;
-                String identify = record.getValue(0).toString();
-                String increment = record.getValue(1).toString();
-                result.put(identify, increment);
-            }
+            final Select select = selectConditionStep.groupBy(field(increments[0]));
+            log.debug(select.getSQL());
+            dbContext.dslContext().connection(new ConnectionRunnable() {
+                @Override
+                public void run(Connection connection) throws Exception {
+                    PreparedStatement ps = connection.prepareStatement(select.getSQL());
+                    Object[] objArray = includeOrExcludeObjSet.toArray();
+                    for (int i = 0; i < objArray.length; i++) {
+                        ps.setObject(i + 1, objArray[i]);
+                    }
+                    ResultSet rs = ps.executeQuery();
+                    while (rs.next()) {
+                        String identify = rs.getString(1);
+                        String increment = rs.getString(2);
+                        result.put(identify, increment);
+                    }
+                }
+            });
         }
         return result;
     }
