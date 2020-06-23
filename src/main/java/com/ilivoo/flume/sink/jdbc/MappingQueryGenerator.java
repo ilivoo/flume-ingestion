@@ -8,6 +8,7 @@ import org.apache.flume.Event;
 import org.jooq.DSLContext;
 import org.jooq.DataType;
 import org.jooq.Field;
+import org.jooq.InsertOnDuplicateSetStep;
 import org.jooq.InsertSetMoreStep;
 import org.jooq.InsertSetStep;
 import org.slf4j.Logger;
@@ -39,7 +40,6 @@ class MappingQueryGenerator implements QueryGenerator {
     }
 
     private void executeTableQuery(DSLContext context, JDBCTable table, final List<Event> events) throws Exception {
-        InsertSetStep insert = context.insertInto(table.getTable());
         int mappedEvents = 0;
         for (Event event : events) {
             Map<Field, Object> fieldValues = new HashMap<>();
@@ -74,19 +74,28 @@ class MappingQueryGenerator implements QueryGenerator {
                 log.debug("Ignoring event, no mapped fields.");
             } else {
                 mappedEvents++;
+                InsertSetStep insert = context.insertInto(table.getTable());
                 if (insert instanceof InsertSetMoreStep) {
                     insert = ((InsertSetMoreStep) insert).newRecord();
                 }
                 for (Map.Entry<Field, Object> entry : fieldValues.entrySet()) {
                     insert = (InsertSetStep) insert.set(entry.getKey(), entry.getValue());
                 }
+                if (insert instanceof InsertSetMoreStep) {
+                    InsertOnDuplicateSetStep step = ((InsertSetMoreStep) insert).onDuplicateKeyUpdate();
+                    for (Map.Entry<Field, Object> entry : fieldValues.entrySet()) {
+                        step.set(entry.getKey(), entry.getValue());
+                    }
+                }
+                if (insert instanceof  InsertSetMoreStep) {
+                    ((InsertSetMoreStep) insert).execute();
+                }
             }
         }
-        if (insert instanceof InsertSetMoreStep) {
-            int result = ((InsertSetMoreStep) insert).execute();
-            counterGroup.addAndGet(table.getName(), new Long(events.size()));
-            if (result != mappedEvents) {
-                log.warn("Mapped {} events, inserted {}.", mappedEvents, result);
+        if (mappedEvents > 0) {
+            counterGroup.addAndGet(table.getName(), new Long(mappedEvents));
+            if (events.size() != mappedEvents) {
+                log.warn("Event size {}, Inserted {}.", events.size(), mappedEvents);
             }
         } else {
             log.debug("No insert.");
