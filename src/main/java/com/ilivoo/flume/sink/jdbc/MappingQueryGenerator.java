@@ -5,15 +5,18 @@ import com.ilivoo.flume.jdbc.JDBCTable;
 import com.ilivoo.flume.utils.JsonUtil;
 import org.apache.flume.CounterGroup;
 import org.apache.flume.Event;
+import org.jooq.ConnectionRunnable;
 import org.jooq.DSLContext;
 import org.jooq.DataType;
 import org.jooq.Field;
 import org.jooq.InsertOnDuplicateSetStep;
 import org.jooq.InsertSetMoreStep;
 import org.jooq.InsertSetStep;
+import org.jooq.conf.ParamType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -39,7 +42,7 @@ class MappingQueryGenerator implements QueryGenerator {
         this.counterGroup = counterGroup;
     }
 
-    private void executeTableQuery(DSLContext context, JDBCTable table, final List<Event> events) throws Exception {
+    private void executeTableQuery(final DSLContext context, JDBCTable table, final List<Event> events) throws Exception {
         int mappedEvents = 0;
         for (Event event : events) {
             Map<Field, Object> fieldValues = new HashMap<>();
@@ -74,12 +77,12 @@ class MappingQueryGenerator implements QueryGenerator {
                 log.debug("Ignoring event, no mapped fields.");
             } else {
                 mappedEvents++;
-                InsertSetStep insert = context.insertInto(table.getTable());
+                final InsertSetStep insert = context.insertInto(table.getTable());
                 if (insert instanceof InsertSetMoreStep) {
-                    insert = ((InsertSetMoreStep) insert).newRecord();
+                    ((InsertSetMoreStep) insert).newRecord();
                 }
                 for (Map.Entry<Field, Object> entry : fieldValues.entrySet()) {
-                    insert = (InsertSetStep) insert.set(entry.getKey(), entry.getValue());
+                    ((InsertSetMoreStep) insert).set(entry.getKey(), entry.getValue());
                 }
                 if (insert instanceof InsertSetMoreStep) {
                     InsertOnDuplicateSetStep step = ((InsertSetMoreStep) insert).onDuplicateKeyUpdate();
@@ -88,7 +91,13 @@ class MappingQueryGenerator implements QueryGenerator {
                     }
                 }
                 if (insert instanceof  InsertSetMoreStep) {
-                    ((InsertSetMoreStep) insert).execute();
+                    context.connection(new ConnectionRunnable() {
+                        @Override
+                        public void run(Connection connection) throws Exception {
+                            String sql = ((InsertSetMoreStep) insert).getSQL(ParamType.INLINED);
+                            connection.prepareStatement(sql).execute();
+                        }
+                    });
                 }
             }
         }

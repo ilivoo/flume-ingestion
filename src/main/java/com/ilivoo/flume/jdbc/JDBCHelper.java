@@ -33,6 +33,7 @@ public class JDBCHelper {
     public static final String TABLE_COLUMNS = "columns";
     public static final String TABLE_COLUMNS_PREFIX = TABLE_COLUMNS + SEPARATOR;
     public static final String BATCH_SIZE = "batchSize";
+    public static final String DATABASE = "database";
     public static final int DEFAULT_READ_BATCH_SIZE = 100;
     public static final int DEFAULT_WRITE_BATCH_SIZE = 100;
     public static final String CONN = "conn.";
@@ -76,14 +77,15 @@ public class JDBCHelper {
             throw new JDBCException("DSL context create error", e);
         }
 
-        final MutableObject mutableObject = new MutableObject();
+        final MutableObject mutable = new MutableObject();
         create.connection(new ConnectionRunnable() {
             @Override
             public void run(Connection connection) throws Exception {
-                mutableObject.setValue(connection.getCatalog());
+                mutable.setValue(connection.getCatalog());
             }
         });
-        String catalog = mutableObject.getValue().toString();
+        String connDatabase = mutable.getValue() == null ? null : mutable.getValue().toString();
+        String catalog = context.getString(DATABASE, connDatabase);
         if (Strings.isNullOrEmpty(catalog)) {
             throw new JDBCException("database should specify");
         }

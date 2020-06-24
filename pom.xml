@@ -98,6 +98,12 @@
             <artifactId>jooq</artifactId>
             <version>${jooq.version}</version>
         </dependency>
+
+        <!--        <dependency>-->
+<!--            <groupId>org.jooq</groupId>-->
+<!--            <artifactId>jooq</artifactId>-->
+<!--            <version>${jooq.version}</version>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
@@ -116,6 +122,11 @@
             <!--<version>6.1.0.jre7</version>-->
             <!--<scope>provided</scope>-->
         <!--</dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>com.oracle</groupId>-->
+<!--            <artifactId>ojdbc11</artifactId>-->
+<!--            <version>11.2.0.4</version>-->
+<!--        </dependency>-->
     </dependencies>
 
     <build>
