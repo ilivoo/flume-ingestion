@@ -22,7 +22,7 @@
         <logback.version>1.2.3</logback.version>
         <flume.version>1.9.0</flume.version>
         <HikariCP.version>3.2.0</HikariCP.version>
-        <jooq.version>3.12.3</jooq.version>
+        <jooq.version>3.13.2</jooq.version>
         <mysql.version>8.0.18</mysql.version>
         <mssql.version>6.1.0.jre7</mssql.version>
     </properties>
@@ -88,18 +88,12 @@
             <artifactId>HikariCP</artifactId>
             <version>${HikariCP.version}</version>
         </dependency>
-        <!--<dependency>-->
-            <!--<groupId>org.jooq.trial</groupId>-->
-            <!--<artifactId>jooq</artifactId>-->
-            <!--<version>${jooq.version}</version>-->
-        <!--</dependency>-->
         <dependency>
-            <groupId>org.jooq</groupId>
+            <groupId>org.jooq.trial-java-8</groupId>
             <artifactId>jooq</artifactId>
             <version>${jooq.version}</version>
         </dependency>
-
-        <!--        <dependency>-->
+<!--        <dependency>-->
 <!--            <groupId>org.jooq</groupId>-->
 <!--            <artifactId>jooq</artifactId>-->
 <!--            <version>${jooq.version}</version>-->
@@ -110,23 +104,18 @@
             <version>${mysql.version}</version>
             <scope>provided</scope>
         </dependency>
-        <!--<dependency>-->
-            <!--<groupId>mysql</groupId>-->
-            <!--<artifactId>mysql-connector-java</artifactId>-->
-            <!--<version>${mysql.version}</version>-->
-            <!--<scope>provided</scope>-->
-        <!--</dependency>-->
-        <!--<dependency>-->
-            <!--<groupId>com.microsoft.sqlserver</groupId>-->
-            <!--<artifactId>mssql-jdbc</artifactId>-->
-            <!--<version>6.1.0.jre7</version>-->
-            <!--<scope>provided</scope>-->
-        <!--</dependency>-->
-<!--        <dependency>-->
-<!--            <groupId>com.oracle</groupId>-->
-<!--            <artifactId>ojdbc11</artifactId>-->
-<!--            <version>11.2.0.4</version>-->
-<!--        </dependency>-->
+        <dependency>
+            <groupId>com.microsoft.sqlserver</groupId>
+            <artifactId>mssql-jdbc</artifactId>
+            <version>6.1.0.jre7</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.oracle</groupId>
+            <artifactId>ojdbc11</artifactId>
+            <version>11.2.0.4</version>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 
     <build>
