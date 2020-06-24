@@ -53,10 +53,6 @@ public class DBContext<T extends JDBCTable> {
         }
     }
 
-    public boolean isSQLServer() {
-        return dslContext.dialect().getName().equalsIgnoreCase("SQLServer");
-    }
-
     public void addAccessTable(T table) {
         this.jdbcTableMap.put(table.getName(), table);
         this.jdbcAliasTableMap.put(table.getAlias(), table);

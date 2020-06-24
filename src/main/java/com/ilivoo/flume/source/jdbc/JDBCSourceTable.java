@@ -18,6 +18,7 @@ import org.jooq.Field;
 import org.jooq.Select;
 import org.jooq.SelectConditionStep;
 import org.jooq.SelectJoinStep;
+import org.jooq.conf.ParamType;
 import org.jooq.impl.DSL;
 
 import java.io.File;
@@ -185,11 +186,7 @@ public class JDBCSourceTable extends JDBCTable {
             dbContext.dslContext().connection(new ConnectionRunnable() {
                 @Override
                 public void run(Connection connection) throws Exception {
-                    PreparedStatement ps = connection.prepareStatement(select.getSQL());
-                    ps.setObject(1, defaultObj);
-                    if (!dbContext.isSQLServer()) {
-                        ps.setObject(2, batchSize);
-                    }
+                    PreparedStatement ps = connection.prepareStatement(select.getSQL(ParamType.INLINED));
                     ResultSet rs = ps.executeQuery();
                     ResultSetMetaData metaData = rs.getMetaData();
                     while (rs.next()) {
@@ -246,12 +243,7 @@ public class JDBCSourceTable extends JDBCTable {
                 dbContext.dslContext().connection(new ConnectionRunnable() {
                     @Override
                     public void run(Connection connection) throws Exception {
-                        PreparedStatement ps = connection.prepareStatement(select.getSQL());
-                        ps.setObject(1, identifyValue);
-                        ps.setObject(2, incrementValue);
-                        if (!dbContext.isSQLServer()) {
-                            ps.setObject(3, batchSize);
-                        }
+                        PreparedStatement ps = connection.prepareStatement(select.getSQL(ParamType.INLINED));
                         ResultSet rs = ps.executeQuery();
                         ResultSetMetaData metaData = rs.getMetaData();
                         while (rs.next()) {
