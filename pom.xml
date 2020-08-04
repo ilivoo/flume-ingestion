@@ -25,8 +25,25 @@
         <jooq.version>3.13.2</jooq.version>
         <mysql.version>8.0.18</mysql.version>
         <mssql.version>6.1.0.jre7</mssql.version>
+        <!-- phoenix -->
+        <phoenix.version>5.0.0.3.0.1.0-187</phoenix.version>
+        <phoenix.client.path>/Users/fengxiang/.m2/custom/hdp/3.0.1.0-187/phoenix/phoenix-5.0.0.3.0.1.0-187-client.jar</phoenix.client.path>
     </properties>
 
+    <repositories>
+        <repository>
+            <id>aliyun</id>
+            <name>aliyun</name>
+            <url>http://maven.aliyun.com/nexus/content/groups/public</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+        </repository>
+        <repository>
+            <id>hortonworks</id>
+            <url>http://repo.hortonworks.com/content/groups/public/</url>
+        </repository>
+    </repositories>
 
     <dependencies>
         <dependency>
@@ -115,6 +132,24 @@
             <artifactId>ojdbc11</artifactId>
             <version>11.2.0.4</version>
             <scope>provided</scope>
+        </dependency>
+        <!--<dependency>
+            <groupId>org.apache.phoenix</groupId>
+            <artifactId>phoenix-flume</artifactId>
+            <version>5.0.0.3.0.1.0-187</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>-->
+        <dependency>
+            <groupId>org.apache.phoenix</groupId>
+            <artifactId>phoenix-client</artifactId>
+            <scope>system</scope>
+            <systemPath>${phoenix.client.path}</systemPath>
+            <version>${phoenix.version}</version>
         </dependency>
     </dependencies>
 

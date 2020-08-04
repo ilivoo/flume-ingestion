@@ -1,6 +1,8 @@
 # Created by .ignore support plugin (hsz.mobi)
 */target/
 /target/
+*/.flume/
+/.flume/
 ### Java template
 # Compiled class file
 *.class
