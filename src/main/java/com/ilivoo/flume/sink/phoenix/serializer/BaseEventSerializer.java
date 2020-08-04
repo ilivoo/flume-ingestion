@@ -1,26 +1,9 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.ilivoo.flume.sink.phoenix.serializer;
 
-import static org.apache.phoenix.flume.FlumeConstants.CONFIG_COLUMN_NAMES;
-import static org.apache.phoenix.flume.FlumeConstants.CONFIG_HEADER_NAMES;
-import static org.apache.phoenix.flume.FlumeConstants.CONFIG_ROWKEY_TYPE_GENERATOR;
-import static org.apache.phoenix.flume.FlumeConstants.DEFAULT_COLUMNS_DELIMITER;
+import static com.ilivoo.flume.sink.phoenix.FlumeConstants.CONFIG_COLUMN_NAMES;
+import static com.ilivoo.flume.sink.phoenix.FlumeConstants.CONFIG_HEADER_NAMES;
+import static com.ilivoo.flume.sink.phoenix.FlumeConstants.CONFIG_ROWKEY_TYPE_GENERATOR;
+import static com.ilivoo.flume.sink.phoenix.FlumeConstants.DEFAULT_COLUMNS_DELIMITER;
 import static org.apache.phoenix.util.PhoenixRuntime.UPSERT_BATCH_SIZE_ATTRIB;
 
 import java.sql.Connection;
@@ -32,14 +15,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import com.ilivoo.flume.sink.phoenix.DefaultKeyGenerator;
+import com.ilivoo.flume.sink.phoenix.FlumeConstants;
+import com.ilivoo.flume.sink.phoenix.KeyGenerator;
+import com.ilivoo.flume.sink.phoenix.SchemaHandler;
 import org.apache.flume.Context;
 import org.apache.flume.conf.ComponentConfiguration;
 import org.apache.phoenix.exception.SQLExceptionCode;
 import org.apache.phoenix.exception.SQLExceptionInfo;
-import org.apache.phoenix.flume.DefaultKeyGenerator;
-import org.apache.phoenix.flume.FlumeConstants;
-import org.apache.phoenix.flume.KeyGenerator;
-import org.apache.phoenix.flume.SchemaHandler;
 import org.apache.phoenix.util.ColumnInfo;
 import org.apache.phoenix.util.QueryUtil;
 import org.apache.phoenix.util.SchemaUtil;
@@ -62,7 +45,7 @@ public abstract class BaseEventSerializer implements EventSerializer {
     protected String fullTableName;
     protected ColumnInfo[] columnMetadata;
     protected boolean autoGenerateKey = false;
-    protected KeyGenerator  keyGenerator;
+    protected KeyGenerator keyGenerator;
     protected List<String>  colNames = Lists.newArrayListWithExpectedSize(10);
     protected List<String>  headers  = Lists.newArrayListWithExpectedSize(5);
     protected String upsertStatement;
