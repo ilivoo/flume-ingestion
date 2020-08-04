@@ -123,7 +123,7 @@ public class JsonEventSerializer extends BaseEventSerializer {
 					data.put(colName, value);
 				}
 
-				Collection<String> values = data.values();
+//				Collection<String> values = data.values();
 //				if (values.contains(null)) {
 //					logger.debug("payload data {} doesn't match the fields mapping {} ", inputJson, jsonSchema);
 //					continue;
@@ -184,7 +184,10 @@ public class JsonEventSerializer extends BaseEventSerializer {
 			connection.commit();
 		} catch (Exception ex) {
 			logger.error("An error {} occurred during persisting the event ", ex.getMessage());
-			throw new SQLException(ex.getMessage());
+			for (Event event : events) {
+				System.out.println(new String(event.getBody()));
+			}
+			throw new SQLException(ex);
 		} finally {
 			if (wasAutoCommit) {
 				connection.setAutoCommit(true);
