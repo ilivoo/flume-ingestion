@@ -28,6 +28,8 @@
         <!-- phoenix -->
         <phoenix.version>5.0.0.3.0.1.0-187</phoenix.version>
         <phoenix.client.path>/Users/fengxiang/.m2/custom/hdp/3.0.1.0-187/phoenix/phoenix-5.0.0.3.0.1.0-187-client.jar</phoenix.client.path>
+        <!--opentsdb -->
+        <opentsdb.version>2.4.0</opentsdb.version>
     </properties>
 
     <repositories>
@@ -150,6 +152,13 @@
             <scope>system</scope>
             <systemPath>${phoenix.client.path}</systemPath>
             <version>${phoenix.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>net.opentsdb</groupId>
+            <artifactId>opentsdb</artifactId>
+            <version>${opentsdb.version}</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 
