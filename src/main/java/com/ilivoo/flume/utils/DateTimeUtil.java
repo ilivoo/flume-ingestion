@@ -74,6 +74,20 @@ public class DateTimeUtil {
         }
     };
 
+    private static ThreadLocal<SimpleDateFormat> sdf21_1 = new ThreadLocal<SimpleDateFormat>() {
+        @Override
+        protected SimpleDateFormat initialValue() {
+            return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.S");
+        }
+    };
+
+    private static ThreadLocal<SimpleDateFormat> sdf23_1 = new ThreadLocal<SimpleDateFormat>() {
+        @Override
+        protected SimpleDateFormat initialValue() {
+            return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+        }
+    };
+
 
     /**
      * Attempts to parse a timestamp from a given string
@@ -151,6 +165,12 @@ public class DateTimeUtil {
                             fmt = sdf19_2.get();
                         else
                             fmt = sdf19_3.get();
+                        break;
+                    case 21:
+                        fmt = sdf21_1.get();
+                        break;
+                    case 23:
+                        fmt = sdf23_1.get();
                         break;
                     default:
                         // todo - deal with internationalization, other time formats

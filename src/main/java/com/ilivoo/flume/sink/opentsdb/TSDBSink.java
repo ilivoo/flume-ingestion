@@ -166,9 +166,6 @@ public class TSDBSink extends AbstractSink implements Configurable, BatchSizeSup
                             tags.put(tag, tagStrValue);
                         }
                     }
-                    if (tags.size() == 3) {
-                        System.out.println("tags: " + tags);
-                    }
                     if (tags.size() <= 0) {
                         throw new RuntimeException("no tag set");
                     }
@@ -227,6 +224,10 @@ public class TSDBSink extends AbstractSink implements Configurable, BatchSizeSup
     @Override
     public synchronized void stop() {
         super.stop();
+        for (WritableDataPoints points : dataPoints.values()) {
+            points.persist();
+        }
+        tsdb.shutdown();
         this.sinkCounter.stop();
         log.info("OpenTSDB Sink do stop. Metrics:{}", counterGroup);
     }
