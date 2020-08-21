@@ -154,7 +154,7 @@ public class TSDBSink extends AbstractSink implements Configurable, BatchSizeSup
                     Map<String, Object> eValue = JsonUtil.jsonToObjectMap(new String(event.getBody(), "UTF-8"));
                     String database = getHeaderValue(headers, metricDatabase).toLowerCase();
                     String table = getHeaderValue(headers, metricTable).toLowerCase();
-                    long timestamp = DateTimeUtil.parseDateTimeString(eValue.get(timeColumn).toString(), null) / 1000;
+                    long timestamp = DateTimeUtil.parseDateTimeString(eValue.get(timeColumn).toString(), null) / 1000 * 1000;
                     Map<String, String> tags = new HashMap<>();
                     for (String tag : tagColumns) {
                         Object tagValue = eValue.get(tag);
