@@ -12,7 +12,7 @@ public class DateTimeUtil {
     public static final HashMap<String, TimeZone> timezones;
     static {
         final String[] tzs = TimeZone.getAvailableIDs();
-        timezones = new HashMap<String, TimeZone>(tzs.length);
+        timezones = new HashMap<>(tzs.length);
         for (final String tz : tzs) {
             timezones.put(tz, TimeZone.getTimeZone(tz));
         }
@@ -117,6 +117,10 @@ public class DateTimeUtil {
         if (datetime == null || datetime.isEmpty())
             return -1;
 
+        if (datetime.matches("^[0-9]+s$")) {
+            return Tags.parseLong(datetime.replaceFirst("^([0-9]+)(s)$", "$1")) * 1000;
+        }
+
         if (datetime.matches("^[0-9]+ms$")) {
             return Tags.parseLong(datetime.replaceFirst("^([0-9]+)(ms)$", "$1"));
         }
@@ -191,15 +195,20 @@ public class DateTimeUtil {
                 // [0-9]{10} ten digits
                 // \\. a dot
                 // [0-9]{1,3} one to three digits
-                final boolean valid_dotted_ms =
-                        datetime.matches("^[0-9]{10}\\.[0-9]{1,3}$");
                 if (contains_dot) {
+                    final boolean valid_dotted_ms = datetime.matches("^[0-9]{10}\\.[0-9]{1,3}$");
                     if (!valid_dotted_ms) {
                         throw new IllegalArgumentException("Invalid time: " + datetime
                                 + ". Millisecond timestamps must be in the format "
                                 + "<seconds>.<ms> where the milliseconds are limited to 3 digits");
                     }
-                    time = Tags.parseLong(datetime.replace(".", ""));
+                    int dotIndex = datetime.indexOf(".");
+                    time = Tags.parseLong(datetime.substring(0, dotIndex)) * 1000;
+                    long dot_time = Tags.parseLong(datetime.substring(dotIndex + 1));
+                    while (dot_time < 99) {
+                        dot_time *= 10;
+                    }
+                    time += dot_time;
                 } else {
                     time = Tags.parseLong(datetime);
                 }
@@ -209,7 +218,7 @@ public class DateTimeUtil {
                 }
                 // this is a nasty hack to determine if the incoming request is
                 // in seconds or milliseconds. This will work until November 2286
-                if (datetime.length() <= 10) {
+                if (!contains_dot && datetime.length() <= 10) {
                     time *= 1000;
                 }
                 return time;
@@ -218,6 +227,11 @@ public class DateTimeUtil {
                         + ". " + e.getMessage());
             }
         }
+    }
+
+    public static void main(String[] args) {
+        String datetime = "1231231ms";
+        System.out.println(parseDateTimeString(datetime, null));
     }
 
     /**
