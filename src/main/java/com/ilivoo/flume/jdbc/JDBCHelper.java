@@ -33,6 +33,8 @@ public class JDBCHelper {
     public static final String TABLE_COLUMNS = "columns";
     public static final String TABLE_COLUMNS_PREFIX = TABLE_COLUMNS + SEPARATOR;
     public static final String BATCH_SIZE = "batchSize";
+    public static final String IGNORE_POSITION = "ignorePosition";
+    public static final Boolean DEFAULT_IGNORE_POSITION = false;
     public static final String DATABASE = "database";
     public static final int DEFAULT_READ_BATCH_SIZE = 100;
     public static final int DEFAULT_WRITE_BATCH_SIZE = 100;
@@ -106,7 +108,10 @@ public class JDBCHelper {
             Integer writeBatchSize = context.getInteger(BATCH_SIZE, DEFAULT_WRITE_BATCH_SIZE);
             Preconditions.checkArgument(writeBatchSize > 0);
             dbContext.setWriteBatchSize(writeBatchSize);
+            Boolean ignorePosition = context.getBoolean(IGNORE_POSITION, DEFAULT_IGNORE_POSITION);
+            dbContext.setIgnorePosition(ignorePosition);
         }
+        dbContext.init();
         return dbContext;
     }
 

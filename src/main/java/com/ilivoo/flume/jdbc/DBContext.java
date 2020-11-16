@@ -34,6 +34,8 @@ public class DBContext<T extends JDBCTable> {
 
     private int writeBatchSize;
 
+    private boolean ignorePosition;
+
     //限制表和表的列， 这样在sink和source中都可以使用到
     public DBContext(DSLContext dslContext, String catalog, List<T> accessTables, String positionPath) {
         this.dslContext = dslContext;
@@ -48,6 +50,9 @@ public class DBContext<T extends JDBCTable> {
         if (accessTables.size() == 0) {
             log.warn("{} database no table limit", catalog);
         }
+    }
+
+    void init() {
         for (T t : jdbcTableMap.values()) {
             t.initTable(this);
         }
@@ -118,5 +123,13 @@ public class DBContext<T extends JDBCTable> {
 
     public void setPositionPath(String positionPath) {
         this.positionPath = positionPath;
+    }
+
+    public boolean isIgnorePosition() {
+        return ignorePosition;
+    }
+
+    public void setIgnorePosition(boolean ignorePosition) {
+        this.ignorePosition = ignorePosition;
     }
 }

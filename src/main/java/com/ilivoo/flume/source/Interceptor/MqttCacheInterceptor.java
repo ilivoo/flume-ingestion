@@ -38,11 +38,13 @@ public class MqttCacheInterceptor extends MqttInterceptor {
     protected Event mqttIntercept(KafkaRecordInfo recordInfo, MqttPublishInfo publishInfo) {
         String clientId = publishInfo.clientId();
         Map<String, String> cacheValue = CacheHelper.get(cacheName, clientId);
+        long waitTime = 0;
         while (cacheValue == null) {
             try {
-                LOG.debug("cache value not exist, name {}, key {}, wait error", cacheName, clientId);
+                LOG.info("cache value not exist, name {}, key {}, wait time {} second", cacheName, clientId, waitTime / 1000);
                 Thread.sleep(cacheCheckInterval);
                 cacheValue = CacheHelper.get(cacheName, clientId);
+                waitTime += cacheCheckInterval;
             } catch (InterruptedException e) {
                 throw new FlumeException("wait cache interrupted exception");
             }

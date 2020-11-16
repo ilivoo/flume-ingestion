@@ -102,7 +102,11 @@ public class JDBCSourceTable extends JDBCTable {
                 defaultStart = defaultValue(dataType);
             }
             Comparable defaultObj = (Comparable) dataType.convert(defaultStart);
-            String position = readPosition();
+
+            String position = null;
+            if (!dbContext.isIgnorePosition()) {
+                position = readPosition();
+            }
             if (position != null && defaultObj.compareTo(dataType.convert(position)) < 0) {
                 defaultStart = position;
             }
@@ -110,7 +114,10 @@ public class JDBCSourceTable extends JDBCTable {
             DataType incrementType = table.field(increments[1]).getDataType();
             Map<String, String> dbPosition = readDBPosition();
             Map<String, String> filePosition = new HashMap<>();
-            String filePositionStr = readPosition();
+            String filePositionStr = null;
+            if (!dbContext.isIgnorePosition()) {
+                filePositionStr = readPosition();
+            }
             if (!Strings.isNullOrEmpty(filePositionStr)) {
                 filePosition = JsonUtil.jsonToStringMap(filePositionStr);
             }
