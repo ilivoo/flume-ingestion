@@ -17,6 +17,7 @@ import java.util.Map;
 public class MqttCacheInterceptor extends MqttInterceptor {
 
     private static final String CACHE_NAME = "cacheName";
+    private static final String CACHE_INCLUDES = "cacheIncludes";
 
     private static final String CACHE_CHECK_INTERVAL = "cacheCheckInterval";
 
@@ -26,6 +27,8 @@ public class MqttCacheInterceptor extends MqttInterceptor {
     private static final long DEFAULT_CACHE_CHECK_INTERVAL = 10;
 
     private String cacheName;
+
+    private String[] cacheIncludes;
 
     private long cacheCheckInterval;
 
@@ -60,9 +63,21 @@ public class MqttCacheInterceptor extends MqttInterceptor {
 
         LOG.debug("payloads {}", payloads);
 
-        for (Map<String, String> payload : payloads) {
-            payload.put("clientId", publishInfo.clientId());
+        if (cacheIncludes != null && cacheIncludes.length > 0) {
+            for (Map<String, String> payload : payloads) {
+                for (String key : cacheIncludes) {
+                    String value = deviceInfo.get(key);
+                    if (!Strings.isNullOrEmpty(value)) {
+                        payload.put(key, value);
+                    }
+                }
+            }
+        } else {
+            for (Map<String, String> payload : payloads) {
+                payload.putAll(deviceInfo);
+            }
         }
+
 
         Object events;
 
@@ -80,6 +95,11 @@ public class MqttCacheInterceptor extends MqttInterceptor {
 
         this.cacheName = context.getString(CACHE_NAME);
         Preconditions.checkArgument(!Strings.isNullOrEmpty(cacheName));
+
+        String cacheIncludesListStr = context.getString(CACHE_INCLUDES);
+        if (!Strings.isNullOrEmpty(cacheIncludesListStr)) {
+            cacheIncludes = cacheIncludesListStr.split("\\s+");
+        }
 
         this.cacheCheckInterval = context.getLong(CACHE_CHECK_INTERVAL, DEFAULT_CACHE_CHECK_INTERVAL) * 1000;
         Preconditions.checkArgument(!Strings.isNullOrEmpty(cacheName));
