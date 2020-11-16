@@ -31,6 +31,7 @@ public class TSDBSink extends AbstractSink implements Configurable, BatchSizeSup
     private static final Logger log = LoggerFactory.getLogger(TSDBSink.class);
 
     private static final String IN_HEADER = "header.";
+    private static final String IN_VALUE = "value.";
 
     private static final String BATCH_SIZE = "batchSize";
     private static final String OPENTSDB_CONFIG = "opentsdb.config";
@@ -151,34 +152,35 @@ public class TSDBSink extends AbstractSink implements Configurable, BatchSizeSup
                 }
                 for (Event event : eventList) {
                     Map<String, String> headers = event.getHeaders();
-                    Map<String, Object> eValue = JsonUtil.jsonToObjectMap(new String(event.getBody(), "UTF-8"));
-                    String database = getHeaderValue(headers, metricDatabase).toLowerCase();
-                    String table = getHeaderValue(headers, metricTable).toLowerCase();
-                    long timestamp = DateTimeUtil.parseDateTimeString(eValue.get(timeColumn).toString(), null) / 1000 * 1000;
-                    Map<String, String> tags = new HashMap<>();
-                    for (String tag : tagColumns) {
-                        Object tagValue = eValue.get(tag);
-                        String tagStrValue = null;
-                        if (tagValue != null) {
-                            tagStrValue = tagValue.toString();
+                    List<Map<String, String>> valueList = JsonUtil.jsonToStringMaps(new String(event.getBody(), "UTF-8"));
+
+                    log.debug("headers {}", headers);
+                    log.debug("value list {}", valueList);
+
+                    for (Map<String, String> eValue : valueList) {
+                        String database = getValue(metricDatabase, headers, eValue).toLowerCase();
+                        String table = getValue(metricTable, headers, eValue).toLowerCase();
+                        long timestamp = DateTimeUtil.parseDateTimeString(eValue.get(timeColumn), null) / 1000 * 1000;
+                        Map<String, String> tags = new HashMap<>();
+                        for (String tag : tagColumns) {
+                            String tagValue = eValue.get(tag);
+                            if (!Strings.isNullOrEmpty(tagValue)) {
+                                tags.put(tag, tagValue);
+                            }
                         }
-                        if (!Strings.isNullOrEmpty(tagStrValue)) {
-                            tags.put(tag, tagStrValue);
+                        if (tags.size() <= 0) {
+                            throw new RuntimeException("no tag set");
                         }
-                    }
-                    if (tags.size() <= 0) {
-                        throw new RuntimeException("no tag set");
-                    }
-                    for (String valueColumn : valueColumns) {
-                        Object value = eValue.get(valueColumn);
-                        if (value != null) {
-                            String strValue = value.toString();
-                            String metric = database + "." + table + "." + valueColumn.toLowerCase();
-                            WritableDataPoints dp = getDataPoints(tsdb, metric, tags);
-                            if (Tags.looksLikeInteger(strValue)) {
-                                dp.addPoint(timestamp, Tags.parseLong(strValue));
-                            } else {
-                                dp.addPoint(timestamp, Float.parseFloat(strValue));
+                        for (String valueColumn : valueColumns) {
+                            String value = eValue.get(valueColumn);
+                            if (!Strings.isNullOrEmpty(value)) {
+                                String metric = database + "." + table + "." + valueColumn.toLowerCase();
+                                WritableDataPoints dp = getDataPoints(tsdb, metric, tags);
+                                if (Tags.looksLikeInteger(value)) {
+                                    dp.addPoint(timestamp, Tags.parseLong(value));
+                                } else {
+                                    dp.addPoint(timestamp, Float.parseFloat(value));
+                                }
                             }
                         }
                     }
@@ -203,11 +205,14 @@ public class TSDBSink extends AbstractSink implements Configurable, BatchSizeSup
         return status;
     }
 
-    private String getHeaderValue(Map<String, String> headers, String key) {
+    private String getValue(String key, Map<String, String> headers, Map<String, String> values) {
         String value = null;
         if (key.startsWith(IN_HEADER)) {
             String headerKey = key.substring(IN_HEADER.length());
             value = headers.get(headerKey);
+        } else if (key.startsWith(IN_VALUE)) {
+            String valueKey = key.substring(IN_VALUE.length());
+            value = values.get(valueKey);
         }
         if (Strings.isNullOrEmpty(value)) {
             value = key;

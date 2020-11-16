@@ -150,7 +150,7 @@ public class JDBCSourceTable extends JDBCTable {
                 jsonObject.addProperty(cName, value);
             }
         }
-        return JsonUtil.gson.toJson(jsonObject);
+        return JsonUtil.toJson(jsonObject);
     }
 
     List<Event> readEvents(final long batchSize) {

@@ -1,11 +1,14 @@
 package com.ilivoo.flume.utils;
 
+import com.google.common.collect.Lists;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 public class JsonUtil {
@@ -39,8 +42,27 @@ public class JsonUtil {
     }
 
     public static Map<String, String> jsonToStringMap(String json) {
-        Map<String, String> result = new HashMap<>();
         JsonElement jsonElement = parser.parse(json);
+        return jsonElementToStringMap(jsonElement);
+    }
+
+    public static List<Map<String, String>> jsonToStringMaps(String json) {
+        List<Map<String, String>> result = Lists.newArrayList();
+        JsonElement outerJsonElement = parser.parse(json);
+        if (outerJsonElement.isJsonArray()) {
+            Iterator<JsonElement> jsonElements = outerJsonElement.getAsJsonArray().iterator();
+            while (jsonElements.hasNext()) {
+                JsonElement jsonElement = jsonElements.next();
+                result.add(jsonElementToStringMap(jsonElement));
+            }
+        } else {
+            result.add(jsonElementToStringMap(outerJsonElement));
+        }
+        return result;
+    }
+
+    private static Map<String, String> jsonElementToStringMap(JsonElement jsonElement) {
+        Map<String, String> result = new HashMap<>();
         for (Map.Entry<String, JsonElement> entry : jsonElement.getAsJsonObject().entrySet()) {
             String key = entry.getKey();
             JsonElement value = entry.getValue();
@@ -60,6 +82,14 @@ public class JsonUtil {
             }
         }
         return result;
+    }
+
+    public static String toJson(JsonElement jsonElement) {
+        return gson.toJson(jsonElement);
+    }
+
+    public static String toJson(Object src) {
+        return gson.toJson(src);
     }
 }
 
