@@ -88,7 +88,10 @@ public class MqttCacheInterceptor extends MqttInterceptor {
         } else {
             events = payloads;
         }
-        return EventBuilder.withBody(JsonUtil.toJson(events), StandardCharsets.UTF_8, new HashMap<String, String>());
+        Map<String, String> headerMap = new HashMap<>();
+        headerMap.put("key", recordInfo.key());
+        headerMap.putAll(deviceInfo);
+        return EventBuilder.withBody(JsonUtil.toJson(events), StandardCharsets.UTF_8, headerMap);
     }
 
     @Override

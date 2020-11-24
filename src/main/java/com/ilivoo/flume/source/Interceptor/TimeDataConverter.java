@@ -20,8 +20,24 @@ public class TimeDataConverter extends KeyConverter {
         Map<String, String> element = new HashMap<>();
         String json = new String(payload, StandardCharsets.UTF_8);
         log.debug("json: {}", json);
-        TimeData timeData = JsonUtil.gson.fromJson(json, TimeData.class);
-        element.put("time", convertTime(timeData.getTime()));
+        TimeData timeData = null;
+        try {
+            timeData = JsonUtil.gson.fromJson(json, TimeData.class);
+        } catch (Exception e) {
+        }
+        if (timeData == null
+                || timeData.getData() == null
+                || timeData.getData().size() == 0) {
+            log.warn("can not convert json: {}", json);
+            return null;
+        }
+        String convertTime = convertTime(timeData.getTime());
+        if (convertTime == null) {
+            log.warn("can not convert json: {}", json);
+            return null;
+        }
+        element.put("originTime", timeData.getTime());
+        element.put("time", convertTime);
         for (NameValue nameValue : timeData.getData()) {
             String replaceName = nameValue.getName().replace(" ", "");
             String convertKey = keyMap.get(replaceName);
@@ -45,7 +61,11 @@ public class TimeDataConverter extends KeyConverter {
             String[] dateTime = time.split(" ", 2);
             //year month day
             String[] ymd = dateTime[0].split("-", 3);
+            if (ymd[0].length() == 2) {//year
+                timeBuilder.append("20");
+            }
             timeBuilder.append(ymd[0]).append("-");
+
             if (ymd[1].length() == 1) { //month
                 timeBuilder.append("0");
             }
@@ -71,6 +91,9 @@ public class TimeDataConverter extends KeyConverter {
             }
             timeBuilder.append(hms[2]);
             cTime = timeBuilder.toString();
+            if (cTime.length() != 19) {//yyyy-MM-dd hh:mm:ss
+                return null;
+            }
         }
         return cTime;
     }

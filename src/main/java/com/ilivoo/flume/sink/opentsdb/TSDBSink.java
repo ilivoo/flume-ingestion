@@ -152,15 +152,26 @@ public class TSDBSink extends AbstractSink implements Configurable, BatchSizeSup
                 }
                 for (Event event : eventList) {
                     Map<String, String> headers = event.getHeaders();
-                    List<Map<String, String>> valueList = JsonUtil.jsonToStringMaps(new String(event.getBody(), "UTF-8"));
+                    String bodyJson = new String(event.getBody(), "UTF-8");
+                    List<Map<String, String>> valueList = JsonUtil.jsonToStringMaps(bodyJson);
 
                     log.debug("headers {}", headers);
-                    log.debug("value list {}", valueList);
+                    log.debug("body josn {}", bodyJson);
 
                     for (Map<String, String> eValue : valueList) {
                         String database = getValue(metricDatabase, headers, eValue).toLowerCase();
                         String table = getValue(metricTable, headers, eValue).toLowerCase();
-                        long timestamp = DateTimeUtil.parseDateTimeString(eValue.get(timeColumn), null) / 1000 * 1000;
+                        long time = 0;
+                        String datetime = eValue.get(timeColumn);
+                        try {
+                            time = DateTimeUtil.parseDateTimeString(datetime, null);
+                        } catch (Exception e) {
+                        }
+                        if (time < 0) {
+                            log.warn("time {} error, header {}, body {}", datetime, headers, bodyJson);
+                            throw new RuntimeException("time error");
+                        }
+                        long timestamp = time / 1000 * 1000;
                         Map<String, String> tags = new HashMap<>();
                         for (String tag : tagColumns) {
                             String tagValue = eValue.get(tag);
@@ -169,6 +180,7 @@ public class TSDBSink extends AbstractSink implements Configurable, BatchSizeSup
                             }
                         }
                         if (tags.size() <= 0) {
+                            log.warn("no tag set, header {}, body {}", headers, bodyJson);
                             throw new RuntimeException("no tag set");
                         }
                         for (String valueColumn : valueColumns) {
