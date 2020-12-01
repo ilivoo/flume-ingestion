@@ -8,6 +8,7 @@ import net.opentsdb.core.TSDB;
 import net.opentsdb.core.Tags;
 import net.opentsdb.core.WritableDataPoints;
 import net.opentsdb.utils.Config;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.flume.Channel;
 import org.apache.flume.Context;
 import org.apache.flume.CounterGroup;
@@ -185,14 +186,16 @@ public class TSDBSink extends AbstractSink implements Configurable, BatchSizeSup
                         }
                         for (String valueColumn : valueColumns) {
                             String value = eValue.get(valueColumn);
-                            if (!Strings.isNullOrEmpty(value)) {
-                                String metric = database + "." + table + "." + valueColumn.toLowerCase();
-                                WritableDataPoints dp = getDataPoints(tsdb, metric, tags);
-                                if (Tags.looksLikeInteger(value)) {
-                                    dp.addPoint(timestamp, Tags.parseLong(value));
-                                } else {
-                                    dp.addPoint(timestamp, Float.parseFloat(value));
-                                }
+                            if (!NumberUtils.isNumber(value)) {
+                                log.warn("metric column {} not a number, values {}", valueColumn, eValue);
+                                continue;
+                            }
+                            String metric = database + "." + table + "." + valueColumn.toLowerCase();
+                            WritableDataPoints dp = getDataPoints(tsdb, metric, tags);
+                            if (Tags.looksLikeInteger(value)) {
+                                dp.addPoint(timestamp, Tags.parseLong(value));
+                            } else {
+                                dp.addPoint(timestamp, Float.parseFloat(value));
                             }
                         }
                     }

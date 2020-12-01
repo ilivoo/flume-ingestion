@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,12 +40,18 @@ public class TimeDataConverter extends KeyConverter {
         element.put("originTime", timeData.getTime());
         element.put("time", convertTime);
         for (NameValue nameValue : timeData.getData()) {
+            //todo
+            String value = nameValue.getValue();
+            if (value.equals("timeout") || value.equals("error")) {
+                log.warn("json contain timeout or error value, drop it");
+                return null;
+            }
             String replaceName = nameValue.getName().replace(" ", "");
             String convertKey = keyMap.get(replaceName);
             if (convertKey != null) {
-                element.put(convertKey, nameValue.getValue());
+                element.put(convertKey, value);
             } else {
-                element.put(nameValue.getName(), nameValue.getValue());
+                element.put(nameValue.getName(), value);
             }
         }
         log.debug("convert map {}", element);
@@ -55,7 +62,7 @@ public class TimeDataConverter extends KeyConverter {
         String cTime;
         try {
             long convertTime = DateTimeUtil.parseDateTimeString(time, null);
-            cTime = String.valueOf(convertTime);
+            cTime = DateTimeUtil.DEFAULT_FORMAT.get().format(new Date(convertTime));
         } catch (Exception e) {
             StringBuilder timeBuilder = new StringBuilder();
             String[] dateTime = time.split(" ", 2);

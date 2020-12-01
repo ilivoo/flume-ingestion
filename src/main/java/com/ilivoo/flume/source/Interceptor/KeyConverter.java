@@ -26,12 +26,15 @@ public abstract class KeyConverter extends PayloadConverter {
         Context keyContexts = new Context(context.getSubProperties("keys."));
 
         for (String keyName : keyNames) {
-            String keyValue = keyContexts.getString(keyName);
-            if (Strings.isNullOrEmpty(keyValue)) {
+            String keyValues = keyContexts.getString(keyName);
+            if (Strings.isNullOrEmpty(keyValues)) {
                 throw new FlumeException("key: " + keyName + ", value not exist");
             }
-            String replaceValue = keyValue.replaceAll(" ", "");
-            keyMap.put(replaceValue, keyName);
+            String[] values = keyValues.split(",");
+            for (String value : values) {
+                String replaceValue = value.replaceAll(" ", "");
+                keyMap.put(replaceValue, keyName);
+            }
         }
     }
 }

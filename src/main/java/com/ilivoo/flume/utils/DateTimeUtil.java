@@ -2,6 +2,7 @@ package com.ilivoo.flume.utils;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.TimeZone;
 
@@ -17,6 +18,13 @@ public class DateTimeUtil {
             timezones.put(tz, TimeZone.getTimeZone(tz));
         }
     }
+
+    public static ThreadLocal<SimpleDateFormat> DEFAULT_FORMAT = new ThreadLocal<SimpleDateFormat>() {
+        @Override
+        protected SimpleDateFormat initialValue() {
+            return new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+        }
+    };
 
     private static ThreadLocal<SimpleDateFormat> sdf10_1 = new ThreadLocal<SimpleDateFormat>() {
         @Override
@@ -232,6 +240,9 @@ public class DateTimeUtil {
     public static void main(String[] args) {
         String datetime = "1231231ms";
         System.out.println(parseDateTimeString(datetime, null));
+
+        String formatDate = DateTimeUtil.DEFAULT_FORMAT.get().format(new Date());
+        System.out.println(formatDate);
     }
 
     /**
