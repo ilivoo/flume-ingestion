@@ -62,6 +62,7 @@ public abstract class MqttInterceptor implements Interceptor, Builder {
         };
 
         String kafkaValue = new String(event.getBody(), StandardCharsets.UTF_8);
+        LOG.debug("kafka value: {}", kafkaValue);
         final Map<String, Object> mqttInfo = JsonUtil.jsonToObjectMap(kafkaValue);
         MqttPublishInfo mqttPublishInfo = new MqttPublishInfo() {
             @Override

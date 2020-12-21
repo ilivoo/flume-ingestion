@@ -170,7 +170,7 @@ public class TSDBSink extends AbstractSink implements Configurable, BatchSizeSup
                         }
                         if (time < 0) {
                             log.warn("time {} error, header {}, body {}", datetime, headers, bodyJson);
-                            throw new RuntimeException("time error");
+                            continue;
                         }
                         long timestamp = time / 1000 * 1000;
                         Map<String, String> tags = new HashMap<>();
@@ -182,12 +182,16 @@ public class TSDBSink extends AbstractSink implements Configurable, BatchSizeSup
                         }
                         if (tags.size() <= 0) {
                             log.warn("no tag set, header {}, body {}", headers, bodyJson);
-                            throw new RuntimeException("no tag set");
+                            continue;
                         }
                         for (String valueColumn : valueColumns) {
                             String value = eValue.get(valueColumn);
+                            if (Strings.isNullOrEmpty(value)) {
+                                continue;
+                            }
                             if (!NumberUtils.isNumber(value)) {
-                                log.warn("metric column {} not a number, values {}", valueColumn, eValue);
+                                log.warn("metric column {} not a number, value is {}", valueColumn, value);
+                                //log.warn("metric column {} not a number, value is {}, maps {}", valueColumn, value, eValue);
                                 continue;
                             }
                             String metric = database + "." + table + "." + valueColumn.toLowerCase();

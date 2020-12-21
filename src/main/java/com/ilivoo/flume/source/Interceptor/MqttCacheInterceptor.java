@@ -31,6 +31,8 @@ public class MqttCacheInterceptor extends MqttInterceptor {
 
     private static final String CONVERTER_KEY = "converterKey";
 
+    private static final String ANONYMOUS = "<Anonymous>";
+
 
     private static final long DEFAULT_CACHE_CHECK_INTERVAL = 10;
 
@@ -42,16 +44,21 @@ public class MqttCacheInterceptor extends MqttInterceptor {
 
     private String converterKey;
 
-    //filter
-    private int position = -1;
-
-    private String key;
+    //topic filter
+    private int topicPosition = -1;
+    private String topicKey;
+    //cache filter
+    private String cacheValue;
+    private String cacheKey;
 
     private Map<String, Expression> transMap = new HashMap<>();
 
     @Override
     protected Event mqttIntercept(KafkaRecordInfo recordInfo, MqttPublishInfo publishInfo) {
         String clientId = publishInfo.clientId();
+        if (ANONYMOUS.equals(clientId)) {
+            return null;
+        }
         Map<String, String> cacheValue = CacheHelper.get(cacheName, clientId);
         long waitTime = 0;
         while (cacheValue == null) {
@@ -60,6 +67,7 @@ public class MqttCacheInterceptor extends MqttInterceptor {
                 Thread.sleep(cacheCheckInterval);
                 cacheValue = CacheHelper.get(cacheName, clientId);
                 waitTime += cacheCheckInterval;
+                LOG.info("publish info, topic [{}], user properties [{}]", publishInfo.topic(), publishInfo.userProperties());
             } catch (InterruptedException e) {
                 throw new FlumeException("wait cache interrupted exception");
             }
@@ -69,19 +77,29 @@ public class MqttCacheInterceptor extends MqttInterceptor {
 
     protected Event cacheMqttIntercept(KafkaRecordInfo recordInfo, MqttPublishInfo publishInfo, Map<String, String> deviceInfo) {
         LOG.debug("interceptor message from client id: {}", recordInfo.key());
-
-        if (position != -1) { ;
+        if (topicPosition != -1) { ;
             LOG.debug("mqtt topic {}", publishInfo.topic());
             String[] topicSplit = publishInfo.topic().split("/");
-            if (position >= topicSplit.length) {
-                LOG.error("Topic {} has no position {}", publishInfo.topic(), position);
+            if (topicPosition >= topicSplit.length) {
+                LOG.error("Topic {} has no position {}", publishInfo.topic(), topicPosition);
                 throw new RuntimeException("Topic has no position");
             }
-            String value = deviceInfo.get(key);
-            String positionValue = topicSplit[position];
-            LOG.debug("topic position [{}] value [{}], key [{}] value [{}]", position, positionValue, key, value);
+            String value = deviceInfo.get(topicKey);
+            String positionValue = topicSplit[topicPosition];
+            LOG.debug("topic position [{}] value [{}], key [{}] value [{}]", topicPosition, positionValue, topicKey, value);
             if (!positionValue.equals(value)) {
-                LOG.warn("topic position [{}] value [{}] is not equals key [{}] value [{}]", position, positionValue, key, value);
+                LOG.warn("topic position [{}] value [{}] is not equals key [{}] value [{}]", topicPosition, positionValue, topicKey, value);
+                return null;
+            }
+        }
+        if (!Strings.isNullOrEmpty(cacheValue)) {
+            String value = deviceInfo.get(cacheKey);
+            if (Strings.isNullOrEmpty(value)) {
+                LOG.error("Client [{}], cache key [{}] value is null", publishInfo.clientId(), cacheKey);
+                throw new RuntimeException("Client [{}], cache key [{}] value is null");
+            }
+            if (!cacheValue.equals(value)) {
+                LOG.debug("drop event, cache value [{}], expect value [{}]", value, cacheValue);
                 return null;
             }
         }
@@ -95,8 +113,6 @@ public class MqttCacheInterceptor extends MqttInterceptor {
         if (payloads == null || payloads.size() == 0) {
             return null;
         }
-
-        LOG.debug("payloads {}", payloads);
 
         if (cacheIncludes != null && cacheIncludes.length > 0) {
             for (Map<String, String> payload : payloads) {
@@ -136,6 +152,8 @@ public class MqttCacheInterceptor extends MqttInterceptor {
             }
         }
 
+        LOG.debug("payloads {}", payloads);
+
         Object events;
 
         if (payloads.size() == 1) {
@@ -171,10 +189,24 @@ public class MqttCacheInterceptor extends MqttInterceptor {
         if (!Strings.isNullOrEmpty(filters)) {
             String[] filterNames = filters.split("\\s+");
             Set<String> filterSet = Sets.newHashSet(filterNames);
+            //a1.sources.r2.interceptors.i1.filters = topic
+            //a1.sources.r2.interceptors.i1.filters.topic.position = 4
+            //a1.sources.r2.interceptors.i1.filters.topic.key = device_code
             if (filterSet.contains("topic")) {
                 Context topicFilterContext = new Context(context.getSubProperties("filters.topic."));
-                position = topicFilterContext.getInteger("position", -1);
-                key = topicFilterContext.getString("key");
+                topicPosition = topicFilterContext.getInteger("position", -1);
+                topicKey = topicFilterContext.getString("key");
+            }
+            //a1.sources.r2.interceptors.i1.filters = cache
+            //a1.sources.r2.interceptors.i1.filters.cache.value = shpdnw
+            //a1.sources.r2.interceptors.i1.filters.cache.key = app_code
+            if (filterSet.contains("cache")) {
+                Context topicFilterContext = new Context(context.getSubProperties("filters.cache."));
+                cacheValue = topicFilterContext.getString("value");
+                cacheKey = topicFilterContext.getString("key");
+                if (!Strings.isNullOrEmpty(cacheValue) && Strings.isNullOrEmpty(cacheKey)) {
+                    throw new FlumeException("filter: cache value not empty, but cache key is null");
+                }
             }
         }
 

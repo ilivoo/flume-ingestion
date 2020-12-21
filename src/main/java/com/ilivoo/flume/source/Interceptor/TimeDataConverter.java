@@ -7,7 +7,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,20 +31,13 @@ public class TimeDataConverter extends KeyConverter {
             log.warn("can not convert json: {}", json);
             return null;
         }
-        String convertTime = convertTime(timeData.getTime());
+        String convertTime = DateTimeUtil.parseToCanonical(timeData.getTime());
         if (convertTime == null) {
             log.warn("can not convert json: {}", json);
             return null;
         }
-        element.put("originTime", timeData.getTime());
-        element.put("time", convertTime);
         for (NameValue nameValue : timeData.getData()) {
-            //todo
             String value = nameValue.getValue();
-            if (value.equals("timeout") || value.equals("error")) {
-                log.warn("json contain timeout or error value, drop it");
-                return null;
-            }
             String replaceName = nameValue.getName().replace(" ", "");
             String convertKey = keyMap.get(replaceName);
             if (convertKey != null) {
@@ -54,55 +46,22 @@ public class TimeDataConverter extends KeyConverter {
                 element.put(nameValue.getName(), value);
             }
         }
-        log.debug("convert map {}", element);
-        return Lists.newArrayList(element);
+
+        List<Map<String, String>> convertMap = doConvert(element);
+        if (convertMap == null) {
+            return null;
+        }
+
+        for (Map<String, String> map : convertMap) {
+            map.put("originTime", timeData.getTime());
+            map.put("time", convertTime);
+        }
+        log.debug("convert map {}", convertMap);
+        return convertMap;
     }
 
-    private String convertTime(String time) {
-        String cTime;
-        try {
-            long convertTime = DateTimeUtil.parseDateTimeString(time, null);
-            cTime = DateTimeUtil.DEFAULT_FORMAT.get().format(new Date(convertTime));
-        } catch (Exception e) {
-            StringBuilder timeBuilder = new StringBuilder();
-            String[] dateTime = time.split(" ", 2);
-            //year month day
-            String[] ymd = dateTime[0].split("-", 3);
-            if (ymd[0].length() == 2) {//year
-                timeBuilder.append("20");
-            }
-            timeBuilder.append(ymd[0]).append("-");
-
-            if (ymd[1].length() == 1) { //month
-                timeBuilder.append("0");
-            }
-            timeBuilder.append(ymd[1]).append("-");
-
-            if (ymd[2].length() == 1) { //day
-                timeBuilder.append("0");
-            }
-            timeBuilder.append(ymd[2]).append(" ");
-            //hour minute second
-            String[] hms = dateTime[1].split(":", 3);
-            if (hms[0].length() == 1) { //hour
-                timeBuilder.append("0");
-            }
-            timeBuilder.append(hms[0]).append(":");
-
-            if (hms[1].length() == 1) { // minute
-                timeBuilder.append("0");
-            }
-            timeBuilder.append(hms[1]).append(":");
-            if (hms[2].length() == 1) {
-                timeBuilder.append("0");
-            }
-            timeBuilder.append(hms[2]);
-            cTime = timeBuilder.toString();
-            if (cTime.length() != 19) {//yyyy-MM-dd hh:mm:ss
-                return null;
-            }
-        }
-        return cTime;
+    protected List<Map<String, String>> doConvert(Map<String, String> element) {
+        return Lists.newArrayList(element);
     }
 
     private static class TimeData {

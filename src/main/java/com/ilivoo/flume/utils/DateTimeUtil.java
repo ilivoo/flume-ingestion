@@ -22,7 +22,7 @@ public class DateTimeUtil {
     public static ThreadLocal<SimpleDateFormat> DEFAULT_FORMAT = new ThreadLocal<SimpleDateFormat>() {
         @Override
         protected SimpleDateFormat initialValue() {
-            return new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+            return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         }
     };
 
@@ -237,12 +237,64 @@ public class DateTimeUtil {
         }
     }
 
+    public static final String parseToCanonical(final String datetime) {
+        String cTime;
+        try {
+            long convertTime = parseDateTimeString(datetime, null);
+            cTime = DEFAULT_FORMAT.get().format(new Date(convertTime));
+        } catch (Exception e) {
+            StringBuilder timeBuilder = new StringBuilder();
+            String[] dateTime = datetime.split(" ", 2);
+            //year month day
+            String[] ymd = dateTime[0].split("-", 3);
+            if (ymd[0].length() == 2) {//year
+                timeBuilder.append("20");
+            }
+            timeBuilder.append(ymd[0]).append("-");
+
+            if (ymd[1].length() == 1) { //month
+                timeBuilder.append("0");
+            }
+            timeBuilder.append(ymd[1]).append("-");
+
+            if (ymd[2].length() == 1) { //day
+                timeBuilder.append("0");
+            }
+            timeBuilder.append(ymd[2]).append(" ");
+            //hour minute second
+            String[] hms = dateTime[1].split(":", 3);
+            if (hms[0].length() == 1) { //hour
+                timeBuilder.append("0");
+            }
+            timeBuilder.append(hms[0]).append(":");
+
+            if (hms[1].length() == 1) { // minute
+                timeBuilder.append("0");
+            }
+            timeBuilder.append(hms[1]).append(":");
+            if (hms[2].length() == 1) {
+                timeBuilder.append("0");
+            }
+            timeBuilder.append(hms[2]);
+            cTime = timeBuilder.toString();
+            if (cTime.length() != 19) {//yyyy-MM-dd hh:mm:ss
+                return null;
+            }
+        }
+        return cTime;
+    }
+
+
+
     public static void main(String[] args) {
         String datetime = "1231231ms";
         System.out.println(parseDateTimeString(datetime, null));
 
         String formatDate = DateTimeUtil.DEFAULT_FORMAT.get().format(new Date());
         System.out.println(formatDate);
+
+        String time = "2020-12-18 14:24:14";
+        System.out.println(parseToCanonical(time));
     }
 
     /**
