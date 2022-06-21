@@ -23,7 +23,7 @@
         <flume.version>1.9.0</flume.version>
         <HikariCP.version>3.2.0</HikariCP.version>
         <jooq.version>3.13.2</jooq.version>
-        <mysql.version>8.0.18</mysql.version>
+        <mysql.version>8.0.28</mysql.version>
         <mssql.version>6.1.0.jre7</mssql.version>
         <!-- phoenix -->
         <phoenix.version>5.0.0.3.0.1.0-187</phoenix.version>
